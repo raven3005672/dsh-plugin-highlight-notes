@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-highlight-notes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Annotations for DeepSeek Harness: select text in an answer, highlight or quote it with a note, and drop the excerpt back into the composer.",
   "license": "MIT",
   "repository": {

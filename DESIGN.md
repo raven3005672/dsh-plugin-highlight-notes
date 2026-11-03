@@ -125,6 +125,13 @@ highlight-notes/<sessionId>   →  该会话的批注数组
 
 先不动，等有真实使用后再定。
 
+**D17 让位宽度必须从与让位无关的量求解。**
+面板要让正文让出位置，做法是给 `[data-conversation-scroll]` 加 `padding-right`。
+第一版用「当前列宽」反解目标值——但 padding 本身就会改变列宽，于是每帧算出差 1px 的新值，
+自定义属性被不停重写，滚动区内的输入框跟着每帧重排，按钮肉眼可见地抖。
+现在只用两个 padding 撼不动的量：滚动框的 border-box 宽度、列声明的 `max-width`；
+并且值变化小于 1px 时不写。实测样式写入从 48 次/800ms 降到 0。
+
 ## 暂缓
 
 **可停靠列。** 需要在 `ui-layout` 新增 `shell.rightdock` 槽位（改 `AppFrame` 的宽度模型 + 声明 + 测试 + 文档）。插件侧用 `ctx.slots.inject('shell.rightdock', ...)` 预留，槽位不存在时静默不激活，上游合并后自动生效。
