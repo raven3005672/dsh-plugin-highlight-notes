@@ -13,6 +13,7 @@ import type { Annotation, Preset } from './contract.ts'
 import type { Translate } from './locales.ts'
 import type { NotesStore, ListFilter } from './store.ts'
 import { useNotes } from './useNotes.ts'
+import { composeMessage } from './compose.ts'
 
 /** Props for the panel card. */
 export interface AnnotationPanelProps {
@@ -20,25 +21,6 @@ export interface AnnotationPanelProps {
   readonly store: NotesStore
   /** Localized copy. */
   readonly t: Translate
-}
-
-/**
- * Compose the text an action drops into the composer: quote, then the note the
- * user wrote about it, then the instruction to act on both. The quote comes
- * first so every "this passage" that follows has an antecedent, and the
- * instruction comes last because that is the operative ask.
- * @param t - localized copy.
- * @param annotation - source annotation.
- * @param instruction - what to do with the excerpt; empty for a plain hand-off.
- * @returns plain text blocks in reading order.
- */
-function composeText(t: Translate, annotation: Annotation, instruction: string): string {
-  const quoted = annotation.quote.split('\n').map(line => `> ${line}`).join('\n')
-  const blocks: string[] = [quoted]
-  const note = annotation.note.trim()
-  if (note !== '') blocks.push(`${t('note.label')}${note}`)
-  if (instruction !== '') blocks.push(instruction)
-  return blocks.join('\n')
 }
 
 /** Pencil glyph for the note-edit trigger. */
@@ -171,7 +153,7 @@ export function AnnotationPanel({ store, t }: AnnotationPanelProps) {
    * @param instruction - what to do with the excerpt; empty for a plain hand-off.
    */
   const handOff = (annotation: Annotation, instruction: string): void => {
-    const result = store.insertText(composeText(t, annotation, instruction))
+    const result = store.insertText(composeMessage(annotation.quote, annotation.note, instruction, t('note.label')))
     if (result === 'ok') return
     window.clearTimeout(failureTimer.current)
     setFailure(result === 'busy' ? t('notice.busy') : t('notice.failed'))

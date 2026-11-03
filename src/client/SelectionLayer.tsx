@@ -17,6 +17,7 @@ import type { Translate } from './locales.ts'
 import type { NotesStore } from './store.ts'
 import { supported } from './highlights.ts'
 import { useNotes } from './useNotes.ts'
+import { composeMessage } from './compose.ts'
 
 /** Elements that delimit a selectable block; a range may not cross two. */
 const BLOCK_SELECTOR = 'p,li,h1,h2,h3,h4,h5,h6,td,th,pre,blockquote,figcaption'
@@ -190,10 +191,12 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       ? [
           { id: 'mark', label: t('menu.mark') },
           { id: 'quote', label: t('menu.annotate') },
+          { id: 'insert', label: t('menu.insert') },
           { id: 'copy', label: t('menu.copy') },
         ]
       : [
           { id: 'unannotate', label: t('menu.unannotate') },
+          { id: 'insert', label: t('menu.insert') },
           { id: 'copy', label: t('menu.copy') },
         ]
 
@@ -217,6 +220,22 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
     if (id === 'quote') {
       setComposer({ ...opened, left: opened.x, bottom: opened.y })
       setNote('')
+      return
+    }
+    if (id === 'insert') {
+      // Shortcut path: the excerpt goes straight into the composer and nothing
+      // is stored. Selecting inside an existing note reuses that note so the
+      // hand-off keeps whatever the user already wrote.
+      const existing = opened.overlapId === undefined
+        ? undefined
+        : snapshot.annotations.find(item => item.id === opened.overlapId)
+      store.insertText(composeMessage(
+        existing?.quote ?? opened.draft.quote,
+        existing?.note ?? '',
+        '',
+        t('note.label'),
+      ))
+      window.getSelection()?.removeAllRanges()
       return
     }
     store.add({
