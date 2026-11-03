@@ -191,12 +191,10 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       ? [
           { id: 'mark', label: t('menu.mark') },
           { id: 'quote', label: t('menu.annotate') },
-          { id: 'insert', label: t('menu.insert') },
           { id: 'copy', label: t('menu.copy') },
         ]
       : [
           { id: 'unannotate', label: t('menu.unannotate') },
-          { id: 'insert', label: t('menu.insert') },
           { id: 'copy', label: t('menu.copy') },
         ]
 
@@ -222,22 +220,6 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       setNote('')
       return
     }
-    if (id === 'insert') {
-      // Shortcut path: the excerpt goes straight into the composer and nothing
-      // is stored. Selecting inside an existing note reuses that note so the
-      // hand-off keeps whatever the user already wrote.
-      const existing = opened.overlapId === undefined
-        ? undefined
-        : snapshot.annotations.find(item => item.id === opened.overlapId)
-      store.insertText(composeMessage(
-        existing?.quote ?? opened.draft.quote,
-        existing?.note ?? '',
-        '',
-        t('note.label'),
-      ))
-      window.getSelection()?.removeAllRanges()
-      return
-    }
     store.add({
       id: crypto.randomUUID(),
       sessionId: snapshot.sessionId ?? '',
@@ -252,6 +234,21 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       note: '',
       createdAt: new Date().toISOString(),
     })
+    window.getSelection()?.removeAllRanges()
+  }
+
+  /**
+   * Hand the pending selection to the composer without storing it.
+   *
+   * The shortcut exists because the common case is "I want this passage in my
+   * next message", where creating a permanent annotation first is a detour.
+   */
+  const insertFromComposer = (): void => {
+    const opened = composer
+    if (opened === null) return
+    store.insertText(composeMessage(opened.draft.quote, note, '', t('note.label')))
+    setComposer(null)
+    setNote('')
     window.getSelection()?.removeAllRanges()
   }
 
@@ -321,6 +318,7 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
             >
               {t('composer.cancel')}
             </button>
+            <button type="button" onClick={insertFromComposer}>{t('composer.insert')}</button>
             <button type="button" data-primary="true" onClick={saveAnnotation}>{t('composer.save')}</button>
           </div>
         </div>
