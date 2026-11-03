@@ -93,16 +93,38 @@ export function AnnotationPanel({ store, t }: AnnotationPanelProps) {
       // GAP pixels before the card instead of guessing a constant: the guess
       // left ~90px of dead space at full width.
       if (scrollBox !== null) {
+        // Solve the padding from quantities the padding cannot move, or the
+        // measurement feeds itself: the column's own width shrinks with the
+        // padding, so deriving the next value from it flipped between two
+        // integers every frame and the composer row shimmered. `scrollWidth`
+        // (the scroll's border box) and the column's declared max width are
+        // both independent of the padding.
         const column = document.querySelector('[data-chat-flow]')
-        const columnWidth = column === null ? 0 : column.getBoundingClientRect().width
+        const declared = column === null ? 0 : Number.parseFloat(getComputedStyle(column).maxWidth)
+        const maxColumn = Number.isFinite(declared)
+          ? Math.round(declared)
+          : (column === null ? 0 : Math.round(column.getBoundingClientRect().width))
+        const scrollWidth = Math.round(scrollBox.width)
         const gap = 14
-        const wanted = Math.round(-scrollBox.width + columnWidth + 20 + 2 * (PANEL_WIDTH + gap))
-        const shift = columnWidth <= 0
-          ? PANEL_WIDTH + 24
-          : Math.max(0, Math.min(PANEL_WIDTH + 24, wanted))
-        document.documentElement.style.setProperty('--dsh-notes-shift', `${shift}px`)
+        // Distance between the text's right edge and the scroll's right edge:
+        // the card's offset (10), its outer width (260 plus the 1px border on
+        // each side) and the gap we want to leave.
+        const clearance = 10 + (PANEL_WIDTH + 2) + gap
+        const centered = maxColumn - scrollWidth + 2 * clearance
+        const filled = clearance
+        const ideal = scrollWidth - centered >= maxColumn ? centered : filled
+        const ceiling = Math.max(0, Math.min(clearance, scrollWidth - 320))
+        const shift = Math.max(0, Math.min(ideal, ceiling))
+        const applied = Number.parseFloat(document.documentElement.style.getPropertyValue('--dsh-notes-shift'))
+        if (!(Math.abs(shift - applied) < 1)) {
+          document.documentElement.style.setProperty('--dsh-notes-shift', `${shift}px`)
+        }
       }
-      setBox({ top, maxHeight: Math.max(160, limit - top), right })
+      const maxHeight = Math.max(160, limit - top)
+      setBox(previous => previous !== null && previous.top === top
+        && previous.maxHeight === maxHeight && previous.right === right
+        ? previous
+        : { top, maxHeight, right })
     }
     measure()
     window.addEventListener('resize', measure)
