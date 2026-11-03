@@ -74,6 +74,7 @@ pnpm test          # 锚点定位的回归用例（纯函数，无浏览器）
 pnpm build         # lib/index.js + lib/client.js
 pnpm smoke         # 无浏览器加载 bundle，断言三个插槽的注册
 pnpm verify        # 上面四步一次跑完
+pnpm release       # 发版：校验 → 改版本 → 收口 CHANGELOG → 提交 → 打 tag → 推送
 ```
 
 本地起真实应用（在 deepseek-harness 仓库里）：

@@ -63,7 +63,8 @@
     "prepack": "npm run build",
     "prepublishOnly": "npm run typecheck && npm run smoke",
     "test": "node scripts/test.mjs",
-    "verify": "pnpm typecheck && pnpm test && pnpm build && pnpm smoke"
+    "verify": "pnpm typecheck && pnpm test && pnpm build && pnpm smoke",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.5",

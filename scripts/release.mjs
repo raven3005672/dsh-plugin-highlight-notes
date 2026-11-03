@@ -17,6 +17,15 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const args = process.argv.slice(2)
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(`usage: node scripts/release.mjs [patch|minor|major|<x.y.z>] [--dry-run] [--no-push]
+
+  patch|minor|major  bump kind (default patch)
+  <x.y.z>            explicit version
+  --dry-run          verify and report, write nothing
+  --no-push          commit and tag locally, leave the push to you`)
+  process.exit(0)
+}
 const dryRun = args.includes('--dry-run')
 const noPush = args.includes('--no-push')
 const bump = args.find(arg => !arg.startsWith('--')) ?? 'patch'
@@ -25,9 +34,14 @@ const bump = args.find(arg => !arg.startsWith('--')) ?? 'patch'
  * Run a command and return its trimmed stdout.
  * @param {string} file - executable.
  * @param {string[]} argv - arguments.
- * @returns {string} stdout.
+ * @param {boolean} stream - show the child's output instead of capturing it.
+ * @returns {string} stdout (empty when streamed).
  */
-function run(file, argv) {
+function run(file, argv, stream = false) {
+  if (stream) {
+    execFileSync(file, argv, { stdio: 'inherit' })
+    return ''
+  }
   return execFileSync(file, argv, { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }).trim()
 }
 
@@ -85,7 +99,7 @@ if (body.replace(/- \[ \]/g, '').trim() === '') fail('the 未发布 section has 
 
 // 5. Everything the publish job will run, run here first.
 step('verify (typecheck, tests, build, smoke)')
-run('pnpm', ['verify'])
+run('pnpm', ['verify'], true)
 
 const today = new Date().toISOString().slice(0, 10)
 if (dryRun) {
@@ -100,7 +114,7 @@ writeFileSync('CHANGELOG.md', changelog.replace(`${HEADING}`, `## ${next} — ${
 
 step('commit and tag')
 run('git', ['add', 'package.json', 'CHANGELOG.md'])
-run('git', ['commit', '-m', `release: ${next}`])
+run('git', ['commit', '-m', `release: ${next}`], true)
 run('git', ['tag', `v${next}`])
 
 if (noPush) {
@@ -109,8 +123,8 @@ if (noPush) {
 }
 
 step('push (this triggers the publish workflow)')
-run('git', ['push'])
-run('git', ['push', 'origin', `v${next}`])
+run('git', ['push'], true)
+run('git', ['push', 'origin', `v${next}`], true)
 
 console.log(`\nrelease: v${next} pushed. Watch the run at
   https://github.com/raven3005672/dsh-plugin-highlight-notes/actions
