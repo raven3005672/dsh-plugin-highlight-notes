@@ -87,6 +87,14 @@ pnpm dsh web --patch ../dsh-plugin-highlight-notes/dev.patch.yml
 
 `demo/` 里是立项前的交互验证页（锚点算法与性能实测），不属于插件运行时。
 
+## 文档
+
+| 文件 | 内容 |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 模块地图、槽位与作用域、数据流、锚点算法、存储 schema、构建发布链路 |
+| [`DESIGN.md`](DESIGN.md) | 决策记录：为什么这么选，以及还没定的问题 |
+| [`CHANGELOG.md`](CHANGELOG.md) | 版本历史 |
+
 ## 设计决策
 
 见 [DESIGN.md](DESIGN.md)：数据边界、模型可见性、面板形态、引用模板、会话隔离。
