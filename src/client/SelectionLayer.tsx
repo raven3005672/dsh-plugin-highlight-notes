@@ -11,7 +11,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { describeSelection, owningMessage } from './anchor.ts'
-import { AnnotationPanel } from './AnnotationPanel.tsx'
 import type { DraftSelection } from './contract.ts'
 import type { Translate } from './locales.ts'
 import type { NotesStore } from './store.ts'
@@ -168,13 +167,6 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       if (scheduled !== 0) return
       scheduled = requestAnimationFrame(() => {
         scheduled = 0
-        // The trajectory tab and other views remove the transcript while the
-        // composer (and this panel) stay mounted; nothing in the column can be
-        // annotated any more, so the column closes with it.
-        if (store.getSnapshot().panelOpen && document.querySelector('[data-chat-flow]') === null) {
-          store.togglePanel(false)
-          return
-        }
         store.refresh()
       })
     })
@@ -277,8 +269,6 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
 
   return (
     <>
-      <AnnotationPanel store={store} t={t} />
-
       <Menu
         open={menu !== null}
         portal

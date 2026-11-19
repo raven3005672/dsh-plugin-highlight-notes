@@ -27,22 +27,6 @@ export const STYLES = `
   color: #1f2328;
 }
 
-/* The conversation column is centred inside its scroll container, so the
-   shift goes on the scroll container: the column moves left as a whole and
-   keeps its own max width. */
-html[data-dsh-notes-shift] [data-conversation-scroll] {
-  padding-right: var(--dsh-notes-shift, 264px);
-  transition: padding-right 180ms ease;
-}
-
-/* The transcript's own width handles are anchored to the scroll box, not to
-   the column: once the panel shifts the text left they float in the gap and
-   read as a stray drag strip beside the card. Suppressed only while the panel
-   is open, and restored the moment it closes. */
-html[data-dsh-notes-shift] [class*='widthHandle'] {
-  display: none;
-}
-
 /* Matches the shipped statistics pills: 22px tall, 12px muted text, no
    border, 8px radius, transparent until hover. */
 .dsh-notes-pill {
@@ -74,37 +58,26 @@ html[data-dsh-notes-shift] [class*='widthHandle'] {
   color: var(--dsw-alias-label-primary, #1f2328);
   opacity: 1;
 }
-.dsh-notes-pill[data-active='true'] {
-  background: var(--dsw-alias-bg-layer-2, rgba(0, 0, 0, 0.06));
-  color: var(--dsw-alias-brand-primary, #2563eb);
-  opacity: 1;
-}
 .dsh-notes-pill-count {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
-.dsh-notes-panel {
-  position: fixed;
-  top: 84px;
-  right: 12px;
-  width: 260px;
+/* Hosted by the right sidebar tab: the list owns the column's height and
+   scrolls inside it, so nothing here measures the transcript. */
+.dsh-notes-tab {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--dsw-alias-border-l2, #e5e7eb);
-  border-radius: 12px;
-  background: var(--dsw-alias-bg-layer-2, #ffffff);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-  overflow: hidden;
-  font: inherit;
-  z-index: 30;
+  height: 100%;
+  min-height: 0;
+  padding: 12px 12px 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
 }
 .dsh-notes-panel-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--dsw-alias-border-l2, #e5e7eb);
+  padding-bottom: 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary, #1f2328);
@@ -112,15 +85,6 @@ html[data-dsh-notes-shift] [class*='widthHandle'] {
 .dsh-notes-panel-title {
   flex: none;
   white-space: nowrap;
-}
-.dsh-notes-close {
-  margin-left: auto;
-  font: inherit;
-  font-size: 12px;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  color: var(--dsw-alias-label-secondary, #6b7280);
 }
 .dsh-notes-trigger {
   display: inline-flex;
@@ -154,7 +118,7 @@ html[data-dsh-notes-shift] [class*='widthHandle'] {
   min-height: 0;
   overflow-y: auto;
   margin: 0;
-  padding: 8px;
+  padding: 8px 0;
   list-style: none;
 }
 .dsh-notes-empty {
@@ -312,7 +276,8 @@ body[data-ds-dark-theme] .dsh-notes-icon-button:hover {
 .dsh-notes-panel-foot {
   display: flex;
   justify-content: flex-end;
-  padding: 2px 8px;
+  padding: 2px 0 8px;
+  margin-top: auto;
   border-top: 1px solid var(--dsw-alias-border-l2, #e5e7eb);
 }
 .dsh-notes-foot-note {

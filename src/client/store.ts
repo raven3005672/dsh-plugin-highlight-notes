@@ -33,7 +33,6 @@ export interface NotesSnapshot {
   /** Locating outcome per annotation id. */
   readonly statuses: ReadonlyMap<string, ResolveStatus>
   /** Whether the floating panel is open. */
-  readonly panelOpen: boolean
   /** Annotation the list highlighted last. */
   readonly activeId: string | undefined
   /** Transient line shown after an action. */
@@ -130,7 +129,6 @@ export class NotesStore {
   private sessionId: string | undefined
   private annotations: Annotation[] = []
   private statuses = new Map<string, ResolveStatus>()
-  private panelOpen = false
   private activeId: string | undefined
   private diagnostics = false
   private filter: ListFilter = 'quote'
@@ -143,7 +141,6 @@ export class NotesStore {
     viewEpoch: 0,
     annotations: [],
     statuses: new Map(),
-    panelOpen: false,
     activeId: undefined,
     diagnostics: false,
     filter: 'quote',
@@ -161,9 +158,6 @@ export class NotesStore {
     if (this.sessionId === sessionId) return
     clear()
     this.viewEpoch += 1
-    // Leaving a conversation also dismisses its annotation column: the list
-    // describes the text that is no longer on screen.
-    this.setPanelOpen(false)
     this.sessionId = sessionId
     this.annotations = readStored(sessionId)
     this.activeId = undefined
@@ -204,13 +198,12 @@ export class NotesStore {
   }
 
   /**
-   * Called when the conversation view unmounts: dismiss the panel and the
-   * transient surfaces that belong to it.
+   * Called when the conversation view unmounts: drop the transient surfaces
+   * that belong to it.
    */
   leaveConversation(): void {
     if (this.sessionId === undefined) return
     this.viewEpoch += 1
-    this.setPanelOpen(false)
     this.publish()
   }
 
@@ -348,28 +341,6 @@ export class NotesStore {
     // scrollBy, not a scrollTop write: the chat view owns follow-tail and
     // overrides a jumped scrollTop, while a relative scroll survives it.
     scroller.scrollBy({ top: rect.top - box.top - box.height / 2 + rect.height / 2 })
-  }
-
-  /**
-   * Open or close the floating panel and shift the conversation column.
-   * @param open - target state; omitted toggles.
-   */
-  togglePanel(open?: boolean): void {
-    this.setPanelOpen(open ?? !this.panelOpen)
-  }
-
-  /**
-   * Single writer for the panel flag: the column shift is a document-level
-   * side effect, so every path that closes the panel has to clear it too.
-   * @param open - target state.
-   */
-  private setPanelOpen(open: boolean): void {
-    const changed = this.panelOpen !== open
-    this.panelOpen = open
-    if (open) document.documentElement.setAttribute('data-dsh-notes-shift', '')
-    else document.documentElement.removeAttribute('data-dsh-notes-shift')
-    if (changed) this.publish()
-    if (open) this.refresh()
   }
 
   /** Read the persisted display flags; call once before the first render. */
@@ -515,7 +486,6 @@ export class NotesStore {
       viewEpoch: this.viewEpoch,
       annotations: this.annotations,
       statuses: this.statuses,
-      panelOpen: this.panelOpen,
       activeId: this.activeId,
         diagnostics: this.diagnostics,
       filter: this.filter,

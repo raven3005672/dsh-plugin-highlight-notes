@@ -20,10 +20,7 @@ export interface NotesListProps {
   readonly store: NotesStore
   /** Localized copy. */
   readonly t: Translate
-  /** `panel` shows the card heading and hide control; `tab` shows only the count. */
-  readonly variant: 'panel' | 'tab'
-  /** Closes the host card; omitted in the tab, whose chip owns closing. */
-  onClose?(): void
+
 }
 
 /** Pencil glyph for the note-edit trigger. */
@@ -50,7 +47,7 @@ function Chevron(): React.ReactElement {
  * @param props - store, copy and host variant.
  * @returns the header, the rows and the footer.
  */
-export function NotesList({ store, t, variant, onClose }: NotesListProps): React.ReactElement {
+export function NotesList({ store, t }: NotesListProps): React.ReactElement {
   const snapshot = useNotes(store)
   const [filterOpen, setFilterOpen] = useState(false)
   const [presetFor, setPresetFor] = useState<string | null>(null)
@@ -101,9 +98,7 @@ export function NotesList({ store, t, variant, onClose }: NotesListProps): React
     <>
       <header className="dsh-notes-panel-head">
         <span className="dsh-notes-panel-title">
-          {variant === 'panel'
-            ? `${t('panel.title')} · ${t('panel.count', { count: visible.length })}`
-            : t('panel.count', { count: visible.length })}
+          {t('panel.count', { count: visible.length })}
         </span>
         <Menu
           open={filterOpen}
@@ -131,11 +126,6 @@ export function NotesList({ store, t, variant, onClose }: NotesListProps): React
             </button>
           )}
         />
-        {variant === 'panel' && onClose !== undefined && (
-          <button type="button" className="dsh-notes-close" onClick={onClose}>
-            {t('panel.close')}
-          </button>
-        )}
       </header>
 
       <ul className="dsh-notes-list">

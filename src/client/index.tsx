@@ -131,7 +131,7 @@ export function apply(ctx: Context): void {
    */
   const NotesTab = (props: TabProps) => (
     <div className="dsh-notes-tab">
-      <NotesList store={store} t={props.t} variant="tab" />
+      <NotesList store={store} t={props.t} />
     </div>
   )
 
