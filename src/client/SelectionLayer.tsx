@@ -119,11 +119,17 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
     const onPointerDown = (event: MouseEvent): void => {
       const target = event.target
       if (!(target instanceof Element)) return
-      if (target.closest('[data-dsh-notes]') !== null) return
-      setComposer(null)
-      // A row keeps its active highlight until the user works elsewhere; the
-      // click that leaves the list is the signal, so no second click on the
-      // same row is needed to clear it.
+      const inChrome = target.closest('[data-dsh-notes]') !== null
+      if (!inChrome) setComposer(null)
+      // "Inside the plugin" is too coarse to decide the active row: the blank
+      // space under the rows is inside the tab too. Keep it only for a click on
+      // a row, one of our controls, or an open menu; everything else — the
+      // list's own empty area included — counts as working elsewhere.
+      const onRow = target.closest('.dsh-notes-item') !== null
+      const onControl = target.closest(
+        '[data-dsh-notes] button, [data-dsh-notes] textarea, [data-dsh-notes] input, [role="menu"]',
+      ) !== null
+      if (onRow || onControl) return
       if (store.getSnapshot().activeId !== undefined) store.setActive(undefined)
     }
 
