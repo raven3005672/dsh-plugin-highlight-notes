@@ -119,13 +119,19 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
     const onPointerDown = (event: MouseEvent): void => {
       const target = event.target
       if (!(target instanceof Element)) return
-      if (target.closest('[data-dsh-notes]') === null) setComposer(null)
+      if (target.closest('[data-dsh-notes]') !== null) return
+      setComposer(null)
+      // A row keeps its active highlight until the user works elsewhere; the
+      // click that leaves the list is the signal, so no second click on the
+      // same row is needed to clear it.
+      if (store.getSnapshot().activeId !== undefined) store.setActive(undefined)
     }
 
-    /** Escape closes the composer; the menu listens for its own Escape. */
+    /** Escape closes the composer and drops the active row. */
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
       setComposer(null)
+      if (store.getSnapshot().activeId !== undefined) store.setActive(undefined)
     }
 
     document.addEventListener('contextmenu', onContextMenu)
