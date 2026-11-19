@@ -31,7 +31,7 @@ src/client/index.tsx    浏览器半边（入口）
 | `client/store.ts` | 470 | 状态与副作用：批注读写、定位、绘制、诊断 |
 | `client/anchor.ts` | 239 | 文本模型、选区描述、范围定位（纯函数 `resolveRange` 可单测） |
 | `client/highlights.ts` | 51 | `CSS.highlights` 注册表：4 个静态名 |
-| `client/NotesList.tsx` | 320 | 列表本体：筛选、行、快捷指令、诊断页脚（tab 里唯一的内容） |
+| `client/NotesList.tsx` | 322 | 列表本体：筛选、行、快捷指令、诊断页脚（tab 里唯一的内容）；引文用 primitives 的 `QuotePreview` |
 | `client/SelectionLayer.tsx` | 300 | 浮层：右键菜单、备注弹框 |
 | `client/AnnotationPill.tsx` | 69 | 输入框上方的「批注 N」药丸；点击打开/切换侧栏 tab |
 | `client/SettingsSection.tsx` | 58 | 设置分区外壳：自己订阅 `configForms` |

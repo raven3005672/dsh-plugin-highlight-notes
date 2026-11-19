@@ -6,7 +6,7 @@
  * drift apart.
  */
 import { useEffect, useRef, useState } from 'react'
-import { IconChevronDownOutlineRegular, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronDownOutlineRegular, Menu, QuotePreview } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Annotation, Preset } from './contract.ts'
 import type { Translate } from './locales.ts'
@@ -176,7 +176,11 @@ export function NotesList({ store, t }: NotesListProps): React.ReactElement {
                 if (next instanceof HTMLElement) next.focus()
               }}
             >
-              <div className="dsh-notes-quote" data-kind={annotation.kind}>{annotation.quote}</div>
+              {/* 引文用 shell 自己的 QuotePreview：与输入框里的引用同一套字形、颜色和省略规则，
+                  被截断时还能悬停看全文。 */}
+              <div className="dsh-notes-quote" data-kind={annotation.kind}>
+                <QuotePreview text={annotation.quote} />
+              </div>
               {editing?.id === annotation.id
                 ? (
                   <textarea

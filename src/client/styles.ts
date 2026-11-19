@@ -182,15 +182,15 @@ body[data-ds-dark-theme] .dsh-notes-item[data-active='true'] {
 /* The excerpt carries weight rather than a tint: with the row's colour bar and
    the highlighted text in the transcript both already saying "quote", a third
    coloured block read as noise. */
+/* 引文本身由 shell 的 QuotePreview 绘制（引用图标 + 业务色 + 单行省略 + 悬停全文），
+   这里只让它在侧栏里占满可用宽度：组件默认给输入框留了 min(80%, 300px) 的上限。 */
 .dsh-notes-quote {
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.6;
-  color: var(--dsw-alias-label-primary, #1f2328);
   display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  padding: 1px 0 2px;
+}
+.dsh-notes-quote [data-quote-preview] {
+  max-width: 100%;
 }
 .dsh-notes-note-row {
   display: flex;
