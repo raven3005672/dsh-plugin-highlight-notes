@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-highlight-notes",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Annotations for DeepSeek Harness: highlight or quote text from an answer, keep the list in the right sidebar, and hand the excerpt back as the shell's own quote node.",
   "license": "MIT",
   "repository": {
