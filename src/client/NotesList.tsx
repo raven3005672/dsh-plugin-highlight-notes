@@ -336,6 +336,9 @@ export function NotesList({ store, t }: NotesListProps): React.ReactElement {
         })}
       </ul>
       <footer className="dsh-notes-panel-foot">
+        {snapshot.locating && (
+          <span className="dsh-notes-foot-note" role="status">{t('panel.locating')}</span>
+        )}
         {failure !== null && <span className="dsh-notes-foot-note" role="status">{failure}</span>}
         <button
           type="button"

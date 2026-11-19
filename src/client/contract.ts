@@ -42,6 +42,13 @@ export interface Annotation {
   readonly note: string
   /** ISO timestamp of creation. */
   readonly createdAt: string
+  /**
+   * Chat turn the seat belonged to (`data-chat-turn`), captured when the
+   * annotation was made. DSH loads history a page at a time, so a turn that is
+   * not mounted can be reached only by asking for pages until it is; the number
+   * tells the reveal loop when to stop.
+   */
+  readonly turn?: number
 }
 
 /** Outcome of locating one annotation in the current DOM. */

@@ -109,12 +109,13 @@ dsh-notes-mark  / dsh-notes-mark-active
 
 ```jsonc
 // localStorage["dsh-plugin-highlight-notes/v1/<sessionId>"]
-[{ id, sessionId, kind: "quote"|"mark", nodeKey, flowKey,
+[{ id, sessionId, kind: "quote"|"mark", nodeKey, flowKey, turn?,
    start, end, quote, prefix, suffix, note, createdAt }]
 ```
 
 读取时统一过 `normalizeAnnotation()`：
 
+- `turn` 是座位所在的聊天回合（`data-chat-turn`）；DSH 只挂载会话尾部，点列表定位时按它**逐页向上加载**历史
 - 未知字段**原样保留**（新版本写的数据降级后不会被抹掉）
 - 未知的 `kind` 一律按 `quote` 读入（否则它会画不进任何注册表、又被所有筛选排除，下一次写入就消失）
 - 缺 `id`/`nodeKey`/`start`/`end`/`quote` 的记录丢弃

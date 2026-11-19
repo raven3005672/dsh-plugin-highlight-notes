@@ -38,6 +38,8 @@ export interface NotesSnapshot {
   /** Transient line shown after an action. */
   /** Whether the list exposes locating status and offsets. */
   readonly diagnostics: boolean
+  /** True while a click is loading older history to reach an annotation. */
+  readonly locating: boolean
   /** Which kinds the list currently shows. */
   readonly filter: ListFilter
   /** User shortcuts from the settings row; empty means "use the built-ins". */
@@ -131,6 +133,10 @@ export class NotesStore {
   private statuses = new Map<string, ResolveStatus>()
   private activeId: string | undefined
   private diagnostics = false
+  /** Set while reveal() is paging history towards an annotation's turn. */
+  private locating = false
+  /** Guards against two reveals paging at once; only the newest may finish. */
+  private locateToken = 0
   private filter: ListFilter = 'quote'
   private presets: Preset[] | undefined
   private input: InputFacts = { draft: '', phase: 'plain', occurrences: 0, actions: undefined }
@@ -143,6 +149,7 @@ export class NotesStore {
     statuses: new Map(),
     activeId: undefined,
     diagnostics: false,
+    locating: false,
     filter: 'quote',
     presets: undefined,
     revision: 0,
@@ -325,37 +332,103 @@ export class NotesStore {
   reveal(id: string): void {
     const annotation = this.annotations.find(candidate => candidate.id === id)
     if (annotation === undefined) return
-    /**
-     * Scroll the quote into view. Runs a frame after the click: activating the
-     * row repaints the list, and measuring before that layout settles could use
-     * a stale scroll box (and a stale range) — which is how a second click
-     * looked like it never located anything.
-     */
-    const apply = (): void => {
-      const range = locate(annotation).range
-      if (range === undefined) {
-        // The text is not reachable right now (collapsed region, seat not
-        // mounted). Land on its seat instead of doing nothing, so a click never
-        // reads as a dead control.
-        this.seatOf(annotation)?.scrollIntoView({ block: 'center' })
-        return
-      }
-      const element = range.startContainer.parentElement
-      if (element === null) return
-      const scroller = element.closest('[data-conversation-scroll]')
-      if (!(scroller instanceof HTMLElement)) {
-        element.scrollIntoView({ block: 'center' })
-        return
-      }
-      // Centre the range itself, not its enclosing element: a paragraph can be
-      // many lines tall and would land its first line wherever the block starts.
-      const rect = range.getBoundingClientRect()
-      const box = scroller.getBoundingClientRect()
-      // scrollBy, not a scrollTop write: the chat view owns follow-tail and
-      // overrides a jumped scrollTop, while a relative scroll survives it.
-      scroller.scrollBy({ top: rect.top - box.top - box.height / 2 + rect.height / 2 })
+    const token = this.locateToken + 1
+    this.locateToken = token
+    const stop = (): void => {
+      if (this.locateToken !== token) return
+      this.locating = false
+      this.publish()
     }
-    requestAnimationFrame(apply)
+    // A click that lands on a mounted seat needs no paging: measure after the
+    // click's own layout settles and centre it.
+    if (this.centerOn(annotation)) return
+    // Annotations written before the field existed still carry the turn in the
+    // seat key (`...assistant-step144...`), so paging works for them too.
+    const turn = annotation.turn
+      ?? Number(annotation.flowKey.match(/(?:assistant-step|turn-process|turn-tail)(\d+)/)?.[1] ?? Number.NaN)
+    const scroller = document.querySelector('[data-conversation-scroll]')
+    if (!Number.isSafeInteger(turn) || !(scroller instanceof HTMLElement)) {
+      this.seatOf(annotation)?.scrollIntoView({ block: 'center' })
+      return
+    }
+    /**
+     * DSH keeps only the loaded tail of the conversation mounted and fetches
+     * earlier pages when the scroller reaches the top, so an annotation in an
+     * older turn cannot be located until its page arrives. Walk the history
+     * backwards one page at a time until the turn is mounted, then centre it.
+     */
+    this.locating = true
+    this.publish()
+    const maxPages = 60
+    let pages = 0
+    const finish = (): void => {
+      if (this.locateToken !== token) return
+      stop()
+    }
+    const step = (): void => {
+      if (this.locateToken !== token) return
+      if (this.centerOn(annotation)) {
+        // A freshly loaded page lays out one frame later; centring again after
+        // that frame is what makes the second click actually land on the text.
+        requestAnimationFrame(() => {
+          if (this.locateToken !== token) return
+          this.centerOn(annotation)
+          finish()
+        })
+        return
+      }
+      const turns = [...document.querySelectorAll('[data-chat-turn]')]
+        .map(row => Number(row.getAttribute('data-chat-turn')))
+        .filter(value => Number.isSafeInteger(value))
+      const oldest = turns.length === 0 ? undefined : Math.min(...turns)
+      if (oldest !== undefined && oldest <= turn) {
+        // The page is in, but the seat itself is missing (collapsed region or a
+        // seat the view no longer renders): land on its turn row.
+        document.querySelector(`[data-chat-turn="${turn}"]`)?.scrollIntoView({ block: 'center' })
+        return finish()
+      }
+      if (pages >= maxPages) {
+        this.seatOf(annotation)?.scrollIntoView({ block: 'center' })
+        return finish()
+      }
+      pages += 1
+      const height = scroller.scrollHeight
+      scroller.scrollTop = 0
+      const started = performance.now()
+      const poll = (): void => {
+        if (this.locateToken !== token) return
+        if (scroller.scrollHeight !== height || performance.now() - started > 1200) step()
+        else window.setTimeout(poll, 60)
+      }
+      window.setTimeout(poll, 60)
+    }
+    // Let the click's own paint settle before the first page request.
+    requestAnimationFrame(step)
+  }
+
+  /**
+   * Centre an annotation's range when its seat is currently mounted.
+   * @param annotation - annotation to show.
+   * @returns whether a range was found and scrolled to.
+   */
+  private centerOn(annotation: Annotation): boolean {
+    const range = locate(annotation).range
+    if (range === undefined) return false
+    const element = range.startContainer.parentElement
+    if (element === null) return false
+    const scroller = element.closest('[data-conversation-scroll]')
+    if (!(scroller instanceof HTMLElement)) {
+      element.scrollIntoView({ block: 'center' })
+      return true
+    }
+    // Centre the range itself, not its enclosing element: a paragraph can be
+    // many lines tall and would land its first line wherever the block starts.
+    const rect = range.getBoundingClientRect()
+    const box = scroller.getBoundingClientRect()
+    // scrollBy, not a scrollTop write: the chat view owns follow-tail and
+    // overrides a jumped scrollTop, while a relative scroll survives it.
+    scroller.scrollBy({ top: rect.top - box.top - box.height / 2 + rect.height / 2 })
+    return true
   }
 
   /**
@@ -522,6 +595,7 @@ export class NotesStore {
       statuses: this.statuses,
       activeId: this.activeId,
         diagnostics: this.diagnostics,
+      locating: this.locating,
       filter: this.filter,
       presets: this.presets,
       revision: this.snapshot.revision + 1,

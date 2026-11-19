@@ -40,6 +40,8 @@ interface MenuState {
   readonly draft: DraftSelection
   /** Existing annotation the selection falls inside, when any. */
   readonly overlapId: string | undefined
+  /** Chat turn the seat sits in; the list pages history by this to reach it. */
+  readonly turn: number | undefined
 }
 
 /** Where the note composer sits and what it will save. */
@@ -105,6 +107,11 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
         x: Math.min(event.clientX, window.innerWidth - 150),
         y: Math.min(event.clientY, window.innerHeight - 120),
         nodeKey: message.getAttribute('data-chat-node-key') ?? '',
+        turn: (() => {
+          const raw = message.closest('[data-chat-turn]')?.getAttribute('data-chat-turn')
+          const value = raw === null || raw === undefined ? Number.NaN : Number(raw)
+          return Number.isSafeInteger(value) ? value : undefined
+        })(),
         flowKey,
         draft,
         overlapId: store.findOverlapping(flowKey, draft.start, draft.end)?.id,
@@ -219,6 +226,7 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       kind: 'mark',
       nodeKey: opened.nodeKey,
       flowKey: opened.flowKey,
+      turn: opened.turn,
       start: opened.draft.start,
       end: opened.draft.end,
       quote: opened.draft.quote,
@@ -256,6 +264,7 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       kind: 'quote',
       nodeKey: composer.nodeKey,
       flowKey: composer.flowKey,
+      turn: composer.turn,
       start: composer.draft.start,
       end: composer.draft.end,
       quote: composer.draft.quote,
