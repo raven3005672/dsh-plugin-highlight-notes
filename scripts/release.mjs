@@ -15,6 +15,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
+import { connect } from 'node:net'
 
 const args = process.argv.slice(2)
 if (args.includes('--help') || args.includes('-h')) {
@@ -60,6 +61,33 @@ function step(text) {
 function fail(reason) {
   console.error(`\nrelease: ${reason}\n`)
   process.exit(1)
+}
+
+/**
+ * Whether something is listening on a local port.
+ * @param {number} port - TCP port to probe.
+ * @returns {Promise<boolean>} true when the connection succeeds.
+ */
+async function listening(port) {
+  return new Promise(resolve => {
+    const socket = connect({ host: '127.0.0.1', port })
+    const done = value => { socket.destroy(); resolve(value) }
+    socket.setTimeout(300)
+    socket.once('connect', () => done(true))
+    socket.once('timeout', () => done(false))
+    socket.once('error', () => done(false))
+  })
+}
+
+// 0. Acceptance/dev servers must be down before a release: they hold the
+// plugin tree we just verified, and shipping while they run leaves the machine
+// and the published artifact describing different states.
+step('checking for running acceptance servers')
+const busy = []
+for (const port of [57021, 57022]) if (await listening(port)) busy.push(port)
+if (busy.length > 0) {
+  fail(`local acceptance server still listening on ${busy.join(', ')}. Stop it first, e.g.\n`
+    + '  pkill -f "dsh-desktop-host/lib/cli.js.*--profile notetest"')
 }
 
 // 1. A release must start from a clean, pushed tree: the tag has to describe
