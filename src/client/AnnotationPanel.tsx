@@ -80,11 +80,16 @@ export function AnnotationPanel({ store, t }: AnnotationPanelProps) {
     const measure = (): void => {
       const scroll = document.querySelector('[data-conversation-scroll]')
       const card = document.querySelector('[data-composer-card]')
+      // 0.2.2 wraps the composer in a sticky seat that paints a 36px fade above
+      // the card. Stopping at the card alone leaves the panel free to cover
+      // that band whenever the card is absent for a moment (a takeover, a
+      // streaming re-mount), which reads as the panel fading into the page.
+      const seat = card?.closest('[class*="composerSeat"]')
+        ?? document.querySelector('[class*="composerSeat"]')
       const scrollBox = scroll === null ? null : scroll.getBoundingClientRect()
       const top = scrollBox === null ? 84 : Math.round(scrollBox.top + 8)
-      // The card stops at the composer's top edge: growing over the input box
-      // hid the draft the user was about to edit.
-      const limit = card === null ? window.innerHeight - 96 : Math.round(card.getBoundingClientRect().top - 8)
+      const composerTop = card?.getBoundingClientRect().top ?? seat?.getBoundingClientRect().top
+      const limit = composerTop === undefined ? window.innerHeight - 96 : Math.round(composerTop - 8)
       const right = scrollBox === null
         ? 12
         : Math.max(12, Math.round(window.innerWidth - scrollBox.right + 10))
