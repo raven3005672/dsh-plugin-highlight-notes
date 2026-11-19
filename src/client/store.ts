@@ -325,22 +325,56 @@ export class NotesStore {
   reveal(id: string): void {
     const annotation = this.annotations.find(candidate => candidate.id === id)
     if (annotation === undefined) return
-    const range = locate(annotation).range
-    if (range === undefined) return
-    const element = range.startContainer.parentElement
-    if (element === null) return
-    const scroller = element.closest('[data-conversation-scroll]')
-    if (!(scroller instanceof HTMLElement)) {
-      element.scrollIntoView({ block: 'center' })
-      return
+    /**
+     * Scroll the quote into view. Runs a frame after the click: activating the
+     * row repaints the list, and measuring before that layout settles could use
+     * a stale scroll box (and a stale range) — which is how a second click
+     * looked like it never located anything.
+     */
+    const apply = (): void => {
+      const range = locate(annotation).range
+      if (range === undefined) {
+        // The text is not reachable right now (collapsed region, seat not
+        // mounted). Land on its seat instead of doing nothing, so a click never
+        // reads as a dead control.
+        this.seatOf(annotation)?.scrollIntoView({ block: 'center' })
+        return
+      }
+      const element = range.startContainer.parentElement
+      if (element === null) return
+      const scroller = element.closest('[data-conversation-scroll]')
+      if (!(scroller instanceof HTMLElement)) {
+        element.scrollIntoView({ block: 'center' })
+        return
+      }
+      // Centre the range itself, not its enclosing element: a paragraph can be
+      // many lines tall and would land its first line wherever the block starts.
+      const rect = range.getBoundingClientRect()
+      const box = scroller.getBoundingClientRect()
+      // scrollBy, not a scrollTop write: the chat view owns follow-tail and
+      // overrides a jumped scrollTop, while a relative scroll survives it.
+      scroller.scrollBy({ top: rect.top - box.top - box.height / 2 + rect.height / 2 })
     }
-    // Centre the range itself, not its enclosing element: a paragraph can be
-    // many lines tall and would land its first line wherever the block starts.
-    const rect = range.getBoundingClientRect()
-    const box = scroller.getBoundingClientRect()
-    // scrollBy, not a scrollTop write: the chat view owns follow-tail and
-    // overrides a jumped scrollTop, while a relative scroll survives it.
-    scroller.scrollBy({ top: rect.top - box.top - box.height / 2 + rect.height / 2 })
+    requestAnimationFrame(apply)
+  }
+
+  /**
+   * Find the rendered seat an annotation belongs to, even when its text cannot
+   * be located right now.
+   * @param annotation - annotation whose seat to find.
+   * @returns the seat element, or null.
+   */
+  private seatOf(annotation: Annotation): HTMLElement | null {
+    const seats = document.querySelectorAll<HTMLElement>('[data-chat-flow-key], [data-chat-node-key]')
+    const flowKey = annotation.flowKey ?? ''
+    const nodeKey = annotation.nodeKey ?? ''
+    for (const seat of seats) {
+      if (flowKey !== '' && seat.getAttribute('data-chat-flow-key') === flowKey) return seat
+    }
+    for (const seat of seats) {
+      if (seat.getAttribute('data-chat-node-key') === nodeKey) return seat
+    }
+    return null
   }
 
   /** Read the persisted display flags; call once before the first render. */
