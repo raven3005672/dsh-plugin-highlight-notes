@@ -479,6 +479,35 @@ export class NotesStore {
     return 'failed'
   }
 
+  /**
+   * Hand a quote to the composer the way the shell itself does.
+   *
+   * DSH 0.2.2 inserts a quote as an atomic node with its own preview and
+   * remove control, so the plugin asks for that first and only falls back to
+   * plain `> ` lines when the API is absent. Whatever follows the quote (the
+   * note, the instruction) is appended after the node.
+   * @param quote - selected excerpt, without quote markers.
+   * @param rest - text to place after the quote; may be empty.
+   * @returns whether both parts landed.
+   */
+  insertQuote(quote: string, rest: string): InsertResult {
+    const { actions, phase } = this.input
+    if (actions === undefined) return 'failed'
+    if (phase !== 'plain') return 'busy'
+    const quoted = quote.split('\n').map(line => `> ${line}`).join('\n')
+    if (actions.insertQuote?.(quote) === true) {
+      if (rest === '') return 'ok'
+      // The quote node ends with its own space; a blank line keeps the note in
+      // its own block instead of trailing the blockquote.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const span = actions.captureInsertion()
+        if (actions.insertText(`\n${rest}`, span)) return 'ok'
+      }
+      return 'failed'
+    }
+    return this.insertText(rest === '' ? quoted : `${quoted}\n${rest}`)
+  }
+
   /** Rebuild the snapshot object and notify subscribers. */
   private publish(): void {
     this.snapshot = {

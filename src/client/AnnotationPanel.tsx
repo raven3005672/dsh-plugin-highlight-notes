@@ -13,7 +13,7 @@ import type { Annotation, Preset } from './contract.ts'
 import type { Translate } from './locales.ts'
 import type { NotesStore, ListFilter } from './store.ts'
 import { useNotes } from './useNotes.ts'
-import { composeMessage } from './compose.ts'
+import { composeRemainder } from './compose.ts'
 
 /** Props for the panel card. */
 export interface AnnotationPanelProps {
@@ -175,7 +175,7 @@ export function AnnotationPanel({ store, t }: AnnotationPanelProps) {
    * @param instruction - what to do with the excerpt; empty for a plain hand-off.
    */
   const handOff = (annotation: Annotation, instruction: string): void => {
-    const result = store.insertText(composeMessage(annotation.quote, annotation.note, instruction, t('note.label')))
+    const result = store.insertQuote(annotation.quote, composeRemainder(annotation.note, instruction, t('note.label')))
     if (result === 'ok') return
     window.clearTimeout(failureTimer.current)
     setFailure(result === 'busy' ? t('notice.busy') : t('notice.failed'))

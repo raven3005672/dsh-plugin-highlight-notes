@@ -17,7 +17,7 @@ import type { Translate } from './locales.ts'
 import type { NotesStore } from './store.ts'
 import { supported } from './highlights.ts'
 import { useNotes } from './useNotes.ts'
-import { composeMessage } from './compose.ts'
+import { composeRemainder } from './compose.ts'
 
 /** Elements that delimit a selectable block; a range may not cross two. */
 const BLOCK_SELECTOR = 'p,li,h1,h2,h3,h4,h5,h6,td,th,pre,blockquote,figcaption'
@@ -246,7 +246,7 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
   const insertFromComposer = (): void => {
     const opened = composer
     if (opened === null) return
-    store.insertText(composeMessage(opened.draft.quote, note, '', t('note.label')))
+    store.insertQuote(opened.draft.quote, composeRemainder(note, '', t('note.label')))
     setComposer(null)
     setNote('')
     window.getSelection()?.removeAllRanges()

@@ -108,4 +108,10 @@ export interface InputActionsLike {
   insertText(text: string, span: DraftSpan): boolean
   /** Replace the whole draft with plain text. */
   setDraft(text: string): void
+  /**
+   * Insert one atomic quote node (DSH 0.2.2+). The sent message carries it as a
+   * Markdown blockquote; the composer shows it as a removable preview.
+   * @returns false when the draft refused it.
+   */
+  insertQuote?(text: string): boolean
 }
