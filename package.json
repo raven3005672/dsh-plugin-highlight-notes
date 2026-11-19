@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-highlight-notes",
   "version": "0.1.1",
-  "description": "Annotations for DeepSeek Harness: select text in an answer, highlight or quote it with a note, and drop the excerpt back into the composer.",
+  "description": "Annotations for DeepSeek Harness: highlight or quote text from an answer, keep the list in the right sidebar, and hand the excerpt back as the shell's own quote node.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -54,7 +54,7 @@
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": ">=0.2.0 <0.3.0"
+    "dsh": ">=0.2.2-rc.5 <0.3.0"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
