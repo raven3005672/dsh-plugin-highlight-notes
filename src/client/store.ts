@@ -100,6 +100,22 @@ function readStored(sessionId: string): Annotation[] {
  * @param item - one parsed storage record.
  * @returns the annotation, or undefined when the record is unusable.
  */
+/**
+ * Chat turn a rendered seat key belongs to.
+ *
+ * Seat keys encode the turn as `assistant-step146`, `turn-process140` or
+ * `turn-tail140`; annotations written before the `turn` field existed can still
+ * page history back to their turn through this.
+ * @param flowKey - `data-chat-flow-key` captured with the annotation.
+ * @returns the turn number, or undefined when the key carries none.
+ */
+export function turnOfSeatKey(flowKey: string): number | undefined {
+  const match = /(?:assistant-step|turn-process|turn-tail)(\d+)/.exec(flowKey)
+  if (match === null) return undefined
+  const value = Number(match[1])
+  return Number.isSafeInteger(value) ? value : undefined
+}
+
 export function normalizeAnnotation(item: unknown): Annotation | undefined {
   if (typeof item !== 'object' || item === null) return undefined
   const candidate = item as Partial<Annotation>
@@ -163,6 +179,7 @@ export class NotesStore {
   bind(sessionId: string, input: InputFacts): void {
     this.input = input
     if (this.sessionId === sessionId) return
+    this.cancelReveal()
     clear()
     this.viewEpoch += 1
     this.sessionId = sessionId
@@ -210,6 +227,7 @@ export class NotesStore {
    */
   leaveConversation(): void {
     if (this.sessionId === undefined) return
+    this.cancelReveal()
     this.viewEpoch += 1
     this.publish()
   }
@@ -305,8 +323,20 @@ export class NotesStore {
    * @param id - annotation id, or undefined to clear the highlight.
    */
   setActive(id: string | undefined): void {
+    // Clearing the row also stops a paging reveal: the user has moved on, and
+    // leaving the loop running would keep loading pages and scrolling the
+    // transcript after the list no longer points anywhere.
+    if (id === undefined) this.cancelReveal()
     this.activeId = id
     this.refresh()
+  }
+
+  /** Stop a reveal that is still paging history; safe to call when idle. */
+  private cancelReveal(): void {
+    if (!this.locating) return
+    this.locateToken += 1
+    this.locating = false
+    this.publish()
   }
 
   /**
@@ -340,17 +370,23 @@ export class NotesStore {
       this.publish()
     }
     // A click that lands on a mounted seat needs no paging: measure after the
-    // click's own layout settles and centre it.
-    if (this.centerOn(annotation)) return
+    // click's own layout settles and centre it. Any page load still running for
+    // a previous click is now stale, so its flag has to be dropped here too.
+    const idle = (): void => {
+      if (!this.locating) return
+      this.locating = false
+      this.publish()
+    }
+    if (this.centerOn(annotation)) return idle()
     // Annotations written before the field existed still carry the turn in the
     // seat key (`...assistant-step144...`), so paging works for them too.
-    const turn = annotation.turn
-      ?? Number(annotation.flowKey.match(/(?:assistant-step|turn-process|turn-tail)(\d+)/)?.[1] ?? Number.NaN)
+    const turn = annotation.turn ?? turnOfSeatKey(annotation.flowKey)
     const scroller = document.querySelector('[data-conversation-scroll]')
-    if (!Number.isSafeInteger(turn) || !(scroller instanceof HTMLElement)) {
+    if (turn === undefined || !(scroller instanceof HTMLElement)) {
       this.seatOf(annotation)?.scrollIntoView({ block: 'center' })
-      return
+      return idle()
     }
+    const targetTurn: number = turn
     /**
      * DSH keeps only the loaded tail of the conversation mounted and fetches
      * earlier pages when the scroller reaches the top, so an annotation in an
@@ -381,10 +417,10 @@ export class NotesStore {
         .map(row => Number(row.getAttribute('data-chat-turn')))
         .filter(value => Number.isSafeInteger(value))
       const oldest = turns.length === 0 ? undefined : Math.min(...turns)
-      if (oldest !== undefined && oldest <= turn) {
+      if (oldest !== undefined && oldest <= targetTurn) {
         // The page is in, but the seat itself is missing (collapsed region or a
         // seat the view no longer renders): land on its turn row.
-        document.querySelector(`[data-chat-turn="${turn}"]`)?.scrollIntoView({ block: 'center' })
+        document.querySelector(`[data-chat-turn="${targetTurn}"]`)?.scrollIntoView({ block: 'center' })
         return finish()
       }
       if (pages >= maxPages) {

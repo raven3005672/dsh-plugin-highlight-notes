@@ -26,7 +26,7 @@ try {
   await compile('src/client/anchor.ts')
   await compile('src/client/store.ts')
   const { resolveRange } = await import(pathToFileURL(join(dir, 'anchor.mjs')).href)
-  const { normalizeAnnotation } = await import(pathToFileURL(join(dir, 'store.mjs')).href)
+  const { normalizeAnnotation, turnOfSeatKey } = await import(pathToFileURL(join(dir, 'store.mjs')).href)
 
   let failures = 0
   const cases = []
@@ -90,6 +90,10 @@ try {
   check('a kind from a newer version reads as a note', normalizeAnnotation(record({ kind: 'todo' }))?.kind, 'quote')
   check('unknown fields survive a downgrade',
     normalizeAnnotation(record({ starred: true }))?.starred, true)
+  check('a stored turn survives a read', normalizeAnnotation(record({ turn: 42 }))?.turn, 42)
+  check('a seat key exposes its turn', turnOfSeatKey('["14:assistant-step146:3","reasoning"]'), 146)
+  check('a process seat key exposes its turn', turnOfSeatKey('12:turn-process140'), 140)
+  check('a key without a turn reads as undefined', turnOfSeatKey('whatever'), undefined)
   check('a record without a quote is rejected', normalizeAnnotation(record({ quote: undefined })), undefined)
   check('a record without offsets is rejected', normalizeAnnotation(record({ start: undefined })), undefined)
   check('a non-object record is rejected', normalizeAnnotation('nope'), undefined)
