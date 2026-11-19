@@ -27,6 +27,8 @@ export interface AnnotationPillProps {
   readonly phase: string
   /** Number of reference chips in the draft. */
   readonly occurrences: number
+  /** Opens (or focuses) the annotation tab in the right sidebar. */
+  openTab(): void
 }
 
 /**
@@ -34,7 +36,7 @@ export interface AnnotationPillProps {
  * @param props - store, copy, and the slot's live session facts.
  * @returns the pill button.
  */
-export function AnnotationPill({ store, t, sessionId, inputActions, draft, phase, occurrences }: AnnotationPillProps) {
+export function AnnotationPill({ store, t, sessionId, inputActions, draft, phase, occurrences, openTab }: AnnotationPillProps) {
   const snapshot = useNotes(store)
 
   useEffect(() => {
@@ -53,9 +55,8 @@ export function AnnotationPill({ store, t, sessionId, inputActions, draft, phase
     <button
       type="button"
       className="dsh-notes-pill"
-      data-active={snapshot.panelOpen ? 'true' : undefined}
       title={t('pill.tip')}
-      onClick={() => { store.togglePanel() }}
+      onClick={openTab}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M4 20h5l2.5-2.5" />

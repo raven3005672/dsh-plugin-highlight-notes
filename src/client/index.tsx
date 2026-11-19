@@ -13,9 +13,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { AnnotationPill } from './AnnotationPill.tsx'
+import { NotesList } from './NotesList.tsx'
 import { SelectionLayer } from './SelectionLayer.tsx'
 import { SettingsSection } from './SettingsSection.tsx'
 import type { Preset } from './contract.ts'
@@ -27,10 +29,15 @@ import { STYLES } from './styles.ts'
 export const name = 'highlight-notes'
 
 /** Services this plugin reads. */
-export const inject = ['slots', 'locale', 'configForms']
+export const inject = ['slots', 'locale', 'configForms', 'sidebarRight', 'sidebarRightTabs']
 
 /** Copy namespace this plugin owns. */
 const LOCALE_NS = 'highlight-notes'
+
+/** Right-sidebar tab type this plugin contributes. */
+const TAB_ID = 'dsh-plugin-highlight-notes'
+/** Kind the tab is opened by; the shell resolves the body through it. */
+const TAB_KIND = 'highlight-notes'
 
 /** Settings namespace this plugin owns: the row id in the profile patch. */
 const SETTINGS_NAMESPACE = 'dsh-plugin-highlight-notes'
@@ -48,6 +55,9 @@ type DockProps = PropsRuntime<'conversation.composer.dock'> & PropsLocale<'highl
 
 /** Standard seats of an overlay entry plus this plugin's copy. */
 type OverlayProps = PropsRuntime<'shell.overlay'> & PropsLocale<'highlight-notes'>
+
+/** Standard seats of a right-sidebar tab body plus this plugin's copy. */
+type TabProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'highlight-notes'>
 
 /**
  * Register both seats and the stylesheet.
@@ -92,6 +102,8 @@ export function apply(ctx: Context): void {
    * @param props - session-standard seats plus copy.
    * @returns the pill.
    */
+  const openTab = (): void => { ctx.sidebarRight.openTab(TAB_KIND) }
+
   const Dock = (props: DockProps) => {
     const draft = props.useInput((state: { draft: string }) => state.draft)
     const phase = props.useInput((state: { phase: string }) => state.phase)
@@ -105,9 +117,23 @@ export function apply(ctx: Context): void {
         draft={draft}
         phase={phase}
         occurrences={occurrences}
+        openTab={openTab}
       />
     )
   }
+
+  /**
+   * Right-sidebar tab body: the same list, hosted by the shell's dockable
+   * column instead of a floating card, so opening it never squeezes the
+   * transcript.
+   * @param props - the tab's standard seats plus copy.
+   * @returns the tab body.
+   */
+  const NotesTab = (props: TabProps) => (
+    <div className="dsh-notes-tab">
+      <NotesList store={store} t={props.t} variant="tab" />
+    </div>
+  )
 
   /**
    * Overlay entry: the panel, selection menu, note composer and toast.
@@ -126,6 +152,26 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('shell.overlay', () => ctx.slots.register(
     { name: 'shell.overlay', id: 'highlight-notes.overlay', locale: LOCALE_NS },
     Overlay,
+  ))
+
+  // The tab type is static: what it is and how its chip reads.
+  ctx.effect(() => ctx.sidebarRightTabs.register({
+    id: TAB_ID,
+    kind: TAB_KIND,
+    // One page per kind: opening again focuses the tab already showing it.
+    keepMounted: true,
+    title: () => ctx.locale.bind(LOCALE_NS)('panel.title'),
+    guide: [{
+      id: 'notes',
+      order: 30,
+      title: () => ctx.locale.bind(LOCALE_NS)('panel.title'),
+      description: () => ctx.locale.bind(LOCALE_NS)('pill.tip'),
+    }],
+  }), 'highlight-notes: sidebar tab type')
+
+  ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register(
+    { name: 'sidebar.right.pane.tab', key: TAB_ID, locale: LOCALE_NS },
+    NotesTab,
   ))
 
   // Settings page section, not a plugin-row config: appearance-and-vocabulary
