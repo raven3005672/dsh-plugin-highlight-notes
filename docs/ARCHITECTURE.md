@@ -1,7 +1,7 @@
 # 架构
 
 > 这里说"怎么搭起来的"；为什么这么选见 [`../DESIGN.md`](../DESIGN.md)，用户视角见 [`../README.md`](../README.md)。
-> 对应当前版本 0.1.1，DSH `0.2.1-rc.2`。
+> 对应当前版本 0.1.1，DSH `0.2.2-rc.5`。
 
 ## 一句话
 
@@ -16,8 +16,8 @@ src/index.ts            宿主半边（Node）
   └─ apply(): 空实现
 
 src/client/index.tsx    浏览器半边（入口）
-  ├─ 声明 inject = ['slots', 'locale', 'configForms']
-  ├─ 注册 3 个槽位 + 注入样式表 + 注册语言字典
+  ├─ 声明 inject = ['slots', 'locale', 'configForms', 'sidebarRight', 'sidebarRightTabs']
+  ├─ 注册 4 个槽位 + 右侧栏 tab 类型 + 注入样式表 + 注册语言字典
   └─ 把配置里的 presets 同步进 store
 ```
 
@@ -28,28 +28,33 @@ src/client/index.tsx    浏览器半边（入口）
 | 文件 | 行数 | 职责 |
 |---|---|---|
 | `client/index.tsx` | 145 | 装配：槽位注册、样式注入、配置同步 |
-| `client/store.ts` | 498 | 状态与副作用：批注读写、定位、绘制、面板开关、让位、诊断 |
+| `client/store.ts` | 470 | 状态与副作用：批注读写、定位、绘制、诊断 |
 | `client/anchor.ts` | 239 | 文本模型、选区描述、范围定位（纯函数 `resolveRange` 可单测） |
 | `client/highlights.ts` | 51 | `CSS.highlights` 注册表：4 个静态名 |
-| `client/AnnotationPanel.tsx` | 436 | 右侧面板：列表、筛选、快捷指令、几何测量 |
-| `client/SelectionLayer.tsx` | 329 | 浮层：右键菜单、备注弹框 |
-| `client/AnnotationPill.tsx` | 68 | 输入框上方的「批注 N」药丸 |
+| `client/NotesList.tsx` | 320 | 列表本体：筛选、行、快捷指令、诊断页脚（tab 里唯一的内容） |
+| `client/SelectionLayer.tsx` | 300 | 浮层：右键菜单、备注弹框 |
+| `client/AnnotationPill.tsx` | 69 | 输入框上方的「批注 N」药丸；点击打开/切换侧栏 tab |
 | `client/SettingsSection.tsx` | 58 | 设置分区外壳：自己订阅 `configForms` |
 | `client/SettingsPage.tsx` | 189 | 设置页表单：快捷指令增删改、恢复内置、复制诊断 |
-| `client/compose.ts` | 25 | 拼装「引用 → 备注 → 指令」 |
+| `client/compose.ts` | 23 | 拼装引文之后的「备注 → 指令」 |
 | `client/styles.ts` | 576 | 全部 CSS（一条字符串注入 `<style>`） |
 | `client/contract.ts` | 111 | 共享类型，无运行时代码 |
 | `client/locales.ts` | 112 | 中英字典；中文是键集真源 |
 
 ## 槽位注册
 
-| 槽位 | 作用域 | 条目 id | 用途 |
+| 槽位 | 作用域 | 条目 key/id | 用途 |
 |---|---|---|---|
 | `conversation.composer.dock` | session | `highlight-notes.annotations` | 药丸；**唯一能拿到 `inputActions` 的地方** |
-| `shell.overlay` | root | `highlight-notes.overlay` | 面板 + 右键菜单 + 备注弹框 |
+| `sidebar.right.pane.tab` | session | `dsh-plugin-highlight-notes` | 批注 tab 的内容（`NotesList`） |
+| `shell.overlay` | root | `highlight-notes.overlay` | 右键菜单 + 备注弹框 |
 | `settings.section` | root | `highlight-notes` | 设置页「批注」分区 |
 
-药丸在 session 作用域、面板在 root 作用域，两者之间靠 `NotesStore` 单例桥接：药丸每次渲染把 `{sessionId, inputActions, draft, phase, occurrences}` 写进 store，面板从 store 读。
+tab 类型通过 `ctx.sidebarRightTabs.register({ id, kind: 'highlight-notes', keepMounted: true, title })` 注册，
+再用 `ctx.sidebarRight.openTab('highlight-notes')` 打开；`multiple` 不设，所以同一会话里再点药丸只是聚焦同一页。
+
+药丸在 session 作用域、右键菜单在 root 作用域，两者之间靠 `NotesStore` 单例桥接：药丸每次渲染把 `{sessionId, inputActions, draft, phase, occurrences}` 写进 store，浮层从 store 读。
+列表由侧栏 tab 直接渲染，不再需要"面板打开"这个状态。
 
 `ctx.slots.inject(name, () => register(...))` 用于等待槽位被声明；直接注册未声明的槽位会硬报错。
 
@@ -60,11 +65,12 @@ src/client/index.tsx    浏览器半边（入口）
   → describeSelection()：座位键 + 偏移 + 引文 + 32 字前后文
   → store.add() 写 localStorage
   → refresh()：定位 → 画高亮 → 更新 snapshot
-  → 面板/药丸重渲染（订阅 store）
+  → 侧栏 tab / 药丸重渲染（订阅 store）
 
 点「添加 / 解释」
-  → composeMessage()（引用 → 备注 → 指令）
-  → store.insertText()：草稿为空则 setDraft，否则 captureInsertion + insertText
+  → composeRemainder()（备注 → 指令），引文单独交给 shell
+  → store.insertQuote()：inputActions.insertQuote(引文) 插成原生引用节点，
+     再把备注与指令追加在节点之后；没有该 API 时回退成纯文本 `> ` 行
   → 用户自己按发送
 ```
 
@@ -113,12 +119,13 @@ dsh-notes-mark  / dsh-notes-mark-active
 - 未知的 `kind` 一律按 `quote` 读入（否则它会画不进任何注册表、又被所有筛选排除，下一次写入就消失）
 - 缺 `id`/`nodeKey`/`start`/`end`/`quote` 的记录丢弃
 
-## 面板几何
+## 列表的落点
 
-- 宽 260px，`right` 相对**对话区**（`[data-conversation-scroll]`）右缘，不是窗口——否则右侧边栏一开就飘到侧栏上
-- 上边界：对话区顶部 + 8；下边界：**输入框卡片上沿** − 8（不是底部，否则会压住正在写的草稿）
-- 让位：给滚动容器加 `padding-right`，值由**与 padding 无关的量**（滚动框 border-box 宽、列的 `max-width`）解出，且变化 < 1px 不写（见 DESIGN D17）
-- 面板开着时隐藏对话区自带的宽度拖拽条：它锚在滚动框上，不随内容左移
+列表**不自己定位**：它是右侧栏的一列，由 `AppFrame` 的 `sidebar | center | rightbar` 列宽计算分配空间。
+插件只负责 `.dsh-notes-tab` 的纵向布局（头部 / 可滚动的 `ul` / 贴底页脚），不写任何窗口级几何。
+
+上一版是 `position: fixed` 的浮层 + 给对话区加 `padding-right` 让位；窄窗口下会把输入框和状态栏挤坏，
+0.2.2 的 tab 把这个问题从根上取消了（见 DESIGN D3 / D17）。
 
 ## 设置
 
@@ -162,7 +169,7 @@ pnpm release scripts/release.mjs    校验 → verify → 改版本 → 收口 C
 
 | 想加什么 | 改哪里 |
 |---|---|
-| 一个内置快捷指令 | `locales.ts` 的 `preset.*` + `AnnotationPanel` 的内置数组 |
+| 一个内置快捷指令 | `locales.ts` 的 `preset.*` + `NotesList` 的内置数组 |
 | 一种新的标注类型 | `contract.ts` 的 `AnnotationKind`、`highlights.ts` 注册表、`styles.ts` 的 `::highlight` 与 `data-kind` 配色、store 的分桶、面板筛选——**这是最贵的一种扩展** |
 | 一个"重要"档（同色相加深） | `highlights.ts` 加一对注册名、`paint()` 改成按名字分桶、`styles.ts` 加规则 |
 | 星标（不影响颜色） | `contract.ts` 加可选字段、`store.toggleStar`、面板行加图标——存储层天然兼容 |

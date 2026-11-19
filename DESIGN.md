@@ -12,12 +12,17 @@
 用户点「添加 / 解释」或备注框里的「添加到对话」时，插件把引文与备注拼成普通文本，用 `inputActions.captureInsertion()` + `insertText()` 追加进草稿。用户自己按发送键，生成一条**标准用户消息**。
 这样"模型可见 ⟺ 已记录"自动成立，不需要协议层改动。
 
-**D3 面板形态：浮层，不做可停靠列。**
-右缘浮层画在 `shell.overlay`（区域 12）上，宽 260px；展开时给 `[data-conversation-scroll]` 加临时 `padding-right` 制造让位感，**不改列宽、不动别的插件的布局**（让位量怎么算见 D17）。
-不做真列的原因：`AppFrame` 固定三列，`rightbar` 是 single 且被文档预览占用。真列需要上游新增槽位，见文末「暂缓」。
+**D3 面板形态：右侧栏 tab（0.2.2 起）。**
+批注列表是右侧栏的一个 tab（`sidebarRightTabs.register` + `sidebar.right.pane.tab`），与「工作区文件 / 新建终端」并列。
+药丸点击时打开/切换这个 tab；同一会话只有一页，再次点击只是聚焦。
+**不做浮层，也不做窄屏回退**：右侧栏窄到放不下时由框架自己决定呈现（`RIGHTBAR_MIN` / 全屏），插件不维护第二套几何。
+
+> 上一版是画在 `shell.overlay` 上的 260px 浮层，展开时给对话区加 `padding-right` 让位。
+> 它的问题不是像素，是架构：让位靠抢对话区宽度，窗口一窄输入框和状态栏就被挤坏，
+> 而我们只能在"挤多少"上微调。0.2.2 的右侧栏 tab 参与框架的列宽计算，从根上取消了这个取舍。
 
 **D4 入口：第 10 区药丸。**
-`conversation.composer.dock` 是 list 槽位，加一个 `id: 'highlight-notes.annotations'`、`order: 2` 的药丸，显示「批注 N」，点击开关浮层。
+`conversation.composer.dock` 是 list 槽位，加一个 `id: 'highlight-notes.annotations'`、`order: 2` 的药丸，显示「批注 N」，点击打开/切换右侧栏的批注 tab。
 这个槽位是 session 作用域，占用者能直接拿到 `inputActions`，入口与写入在同一上下文里闭环，不需要桥接组件。
 
 **D5 区域编号。**
@@ -102,16 +107,12 @@ dsh-plugin-highlight-notes/v1/<sessionId>   →  该会话的批注数组
 
 **D15 面板打开时回合定位器隐藏：接受。**
 `TurnNavigator` 在对话区宽度低于约 960px 时用容器查询隐藏自己（`ui-chat/TurnNavigator.module.css`）。
-我们的浮层靠 `padding-right` 让位，必然把宽度压到断点以下，所以面板开着时定位器消失、关掉即恢复。
-不做左侧面板或底部抽屉改造：DSH 自带的右侧边栏展开时同样会隐藏定位器（实测对话区 993 → 417，定位器消失），
-当前行为与官方取舍一致。
+右侧栏展开时对话区同样会变窄、定位器随框架隐藏，这与 DSH 自身的取舍一致（实测对话区 993 → 417），
+插件不再对此做特殊处理。
 
-**D17 让位宽度必须从与让位无关的量求解。**
-面板要让正文让出位置，做法是给 `[data-conversation-scroll]` 加 `padding-right`。
-第一版用「当前列宽」反解目标值——但 padding 本身就会改变列宽，于是每帧算出差 1px 的新值，
-自定义属性被不停重写，滚动区内的输入框跟着每帧重排，按钮肉眼可见地抖。
-现在只用两个 padding 撼不动的量：滚动框的 border-box 宽度、列声明的 `max-width`；
-并且值变化小于 1px 时不写。实测样式写入从 48 次/800ms 降到 0。
+**D17 不再需要让位计算：作废（随 D3 一起退役）。**
+浮层时代的 `padding-right` 求解、`--dsh-notes-shift` 与宽度拖拽条抑制已全部删除；
+侧栏 tab 由框架分配列宽，插件不写任何布局属性。保留这段是因为"从与让位无关的量求解"这个教训仍适用于任何将来的浮动 UI。
 
 ## 未定
 
@@ -135,5 +136,5 @@ dsh-plugin-highlight-notes/v1/<sessionId>   →  该会话的批注数组
 
 ## 暂缓
 
-**可停靠列。** 需要在 `ui-layout` 新增 `shell.rightdock` 槽位（改 `AppFrame` 的宽度模型 + 声明 + 测试 + 文档）。插件侧用 `ctx.slots.inject('shell.rightdock', ...)` 预留，槽位不存在时静默不激活，上游合并后自动生效。
+**（已落地）可停靠列。** 0.2.2 的右侧栏开放了 tab 注册（`sidebarRightTabs`），批注列表已经迁过去（见 D3）。原计划的 `shell.rightdock` 槽位不再需要。
 

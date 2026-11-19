@@ -43,7 +43,7 @@ assert.equal(registration.id, pkg.name, 'bundle id must equal the package name')
 
 const plugin = registration.factory(require)
 assert.equal(typeof plugin.apply, 'function', 'client plugin must export apply')
-assert.deepEqual(plugin.inject, ['slots', 'locale', 'configForms'], 'inject must declare its services')
+assert.deepEqual(plugin.inject, ['slots', 'locale', 'configForms', 'sidebarRight', 'sidebarRightTabs'], 'inject must declare its services')
 
 const calls = []
 plugin.apply({
@@ -67,12 +67,21 @@ plugin.apply({
     inject: (slot, factory) => { calls.push(`inject:${slot}`); return factory() },
     register: (options) => { calls.push(`register:${options.name}#${options.key ?? options.id}`); return () => {} },
   },
+  sidebarRight: {
+    openTab: kind => { calls.push(`openTab:${kind}`) },
+  },
+  sidebarRightTabs: {
+    register: definition => { calls.push(`tab:${definition.id}:${definition.kind}`); return () => {} },
+  },
 })
 
 assert.ok(calls.includes('inject:conversation.composer.dock'), 'must wait on the composer dock')
 assert.ok(calls.includes('register:conversation.composer.dock#highlight-notes.annotations'), 'must add the dock pill')
 assert.ok(calls.includes('inject:shell.overlay'), 'must wait on the shell overlay')
 assert.ok(calls.includes('register:shell.overlay#highlight-notes.overlay'), 'must render the overlay surfaces')
+assert.ok(calls.includes('tab:dsh-plugin-highlight-notes:highlight-notes'), 'must register the sidebar tab type')
+assert.ok(calls.includes('inject:sidebar.right.pane.tab'), 'must wait on the sidebar tab seat')
+assert.ok(calls.includes('register:sidebar.right.pane.tab#dsh-plugin-highlight-notes'), 'must render the tab body')
 assert.ok(calls.some(call => call.startsWith('register:settings.section#')), 'must offer the settings section')
 assert.ok(calls.includes('form:dsh-plugin-highlight-notes'), 'must read its own settings namespace')
 assert.ok(calls.some(call => call.startsWith('locale:highlight-notes:')), 'must register its dictionaries')

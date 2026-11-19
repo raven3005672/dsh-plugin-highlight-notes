@@ -6,7 +6,7 @@
 
 ## 截图
 
-<img src="https://raw.githubusercontent.com/raven3005672/dsh-plugin-highlight-notes/master/docs/screenshots/panel-light.png" width="330" alt="批注列表与面板">
+<img src="https://raw.githubusercontent.com/raven3005672/dsh-plugin-highlight-notes/master/docs/screenshots/panel-light.png" width="330" alt="右侧栏里的批注列表">
 <img src="https://raw.githubusercontent.com/raven3005672/dsh-plugin-highlight-notes/master/docs/screenshots/settings-section.png" width="330" alt="设置页">
 
 ## 功能
@@ -21,7 +21,7 @@
 | 快捷引用 | 右键「批注…」后，备注框里的「添加到对话」把原文和备注直接放进输入框，**不保存批注**、不进列表 |
 | 喂给模型 | 引用块 → 备注 → 指令，三段拼成一条消息写进输入框，由你自己按发送。内置「解释 / 不同意」，也可在设置里增删 |
 | 可配置 | 「设置 → 批注」里编辑快捷指令的按钮文字与指令语；内置两条以真实行呈现，可改可删，「恢复内置」回到未配置态 |
-| 入口 | 输入框上方状态栏的「批注 N」药丸，点开右侧浮层面板 |
+| 入口 | 输入框上方状态栏的「批注 N」药丸，点开/切换右侧栏的「批注」tab（不挤压对话区） |
 | 中英文 | 跟随 DSH 语言设置 |
 
 ## 安装
@@ -49,8 +49,8 @@ dsh plugin --profile desktop add "file:$PWD"
 2. 写备注（可留空）→「保存批注」。文字被高亮（暖黄），状态栏药丸计数 +1。
    - 只想留个视觉记号：右键直接选「高亮」（冷蓝，不进列表）。
    - 只想把这段放进下一条消息：备注框里点「添加到对话」——写进输入框，但**不保存**。
-3. 点药丸打开面板：点条目可滚动定位；`[添加]` 只放引用，`[解释 ▾]` 连同指令一起放。
-4. 切到别的会话，面板只显示那个会话自己的批注；切回来原样恢复。
+3. 点药丸打开右侧栏的「批注」tab：点条目可滚动定位；`[添加]` 只放引用，`[解释 ▾]` 连同指令一起放。
+4. 切到别的会话，tab 只显示那个会话自己的批注；切回来原样恢复。
 
 ## 数据
 
@@ -97,4 +97,4 @@ pnpm dsh web --patch ../dsh-plugin-highlight-notes/dev.patch.yml
 
 ## 设计决策
 
-见 [DESIGN.md](DESIGN.md)：数据边界、模型可见性、面板形态、引用模板、会话隔离。
+见 [DESIGN.md](DESIGN.md)：数据边界、模型可见性、面板形态（右侧栏 tab）、引用模板、会话隔离。
