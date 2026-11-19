@@ -18,9 +18,6 @@ import { supported } from './highlights.ts'
 import { useNotes } from './useNotes.ts'
 import { composeRemainder } from './compose.ts'
 
-/** Elements that delimit a selectable block; a range may not cross two. */
-const BLOCK_SELECTOR = 'p,li,h1,h2,h3,h4,h5,h6,td,th,pre,blockquote,figcaption'
-
 /** Props for the overlay half. */
 export interface SelectionLayerProps {
   /** Plugin store. */
@@ -51,16 +48,6 @@ interface ComposerState extends MenuState {
   readonly left: number
   /** Viewport y of the selection's bottom edge. */
   readonly bottom: number
-}
-
-/**
- * Find the block element that owns a selection endpoint.
- * @param node - endpoint node.
- * @returns the closest block, or null.
- */
-function blockOf(node: Node): Element | null {
-  const element = node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement
-  return element === null ? null : element.closest(BLOCK_SELECTOR)
 }
 
 /**
@@ -104,11 +91,13 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
       // Annotations belong to what the assistant said. On a user message the
       // handler steps aside and the browser's own menu stays available.
       if (message.getAttribute('data-chat-flow-kind') !== 'assistant-step') return
+      // A selection that ends in another rendered seat has no single anchor, so
+      // the plugin steps aside — before preventing anything, or it would eat the
+      // native menu and leave the user with none at all. Cross-block selections
+      // inside one seat are fine: the text model is the seat's whole plain text,
+      // so a range over several paragraphs is still one offset span.
+      if (owningMessage(range.endContainer) !== message) return
       event.preventDefault()
-      const endMessage = owningMessage(range.endContainer)
-      if (endMessage !== message || blockOf(range.startContainer) !== blockOf(range.endContainer)) {
-        return
-      }
       const draft = describeSelection(message, range)
       if (draft === undefined) return
       const flowKey = message.getAttribute('data-chat-flow-key') ?? ''
