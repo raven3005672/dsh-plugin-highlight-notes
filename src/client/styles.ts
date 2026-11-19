@@ -265,14 +265,21 @@ body[data-ds-dark-theme] .dsh-notes-icon-button:hover {
 .dsh-notes-badge[data-status='fuzzy'] { color: #b45309; }
 .dsh-notes-badge[data-status='lost'],
 .dsh-notes-badge[data-status='missing'] { color: #b91c1c; }
-.dsh-notes-hint {
-  padding: 6px 12px;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--dsw-alias-label-secondary, #6b7280);
-  border-top: 1px solid var(--dsw-alias-border-l2, #e5e7eb);
+.dsh-notes-hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--dsw-alias-state-warning-primary, #b45309);
+  cursor: default;
+  outline: none;
 }
-
+.dsh-notes-hint-icon:focus-visible {
+  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary, #4176e6);
+}
 .dsh-notes-panel-foot {
   display: flex;
   justify-content: flex-end;

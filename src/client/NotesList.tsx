@@ -6,7 +6,9 @@
  * drift apart.
  */
 import { useEffect, useRef, useState } from 'react'
-import { IconChevronDownOutlineRegular, Menu, QuotePreview } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  IconChevronDownOutlineRegular, IconWarningOutlineRegular, Menu, QuotePreview, Tooltip,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Annotation, Preset } from './contract.ts'
 import type { Translate } from './locales.ts'
@@ -126,6 +128,18 @@ export function NotesList({ store, t }: NotesListProps): React.ReactElement {
             </button>
           )}
         />
+        {unusable && (
+          <Tooltip label={t('panel.lostHint')} side="bottom" align="end" portal maxWidth={240}>
+            <span
+              className="dsh-notes-hint-icon"
+              role="img"
+              tabIndex={0}
+              aria-label={t('panel.lostHint')}
+            >
+              <IconWarningOutlineRegular size={14} />
+            </span>
+          </Tooltip>
+        )}
       </header>
 
       <ul className="dsh-notes-list">
@@ -321,7 +335,6 @@ export function NotesList({ store, t }: NotesListProps): React.ReactElement {
           )
         })}
       </ul>
-      {unusable && <div className="dsh-notes-hint">{t('panel.lostHint')}</div>}
       <footer className="dsh-notes-panel-foot">
         {failure !== null && <span className="dsh-notes-foot-note" role="status">{failure}</span>}
         <button
