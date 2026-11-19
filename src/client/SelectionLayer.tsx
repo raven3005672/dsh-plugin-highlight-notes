@@ -288,7 +288,10 @@ export function SelectionLayer({ store, t }: SelectionLayerProps) {
         items={menuItems}
         onSelect={handleMenuSelect}
         onClose={() => { setMenu(null) }}
-        getAnchorRect={() => menu === null ? null : new DOMRect(menu.x, menu.y, 0, 0)}
+        // 0.2.2 replaced the measured-rect hook with a captured pointer point
+        // (the list is placed with CSS anchor positioning); passing the old
+        // prop silently anchored the menu to the inline wrapper at the origin.
+        anchorPoint={menu === null ? undefined : { x: menu.x, y: menu.y }}
         anchor={<span data-notes-anchor="" />}
       />
 
